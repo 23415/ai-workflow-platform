@@ -1,0 +1,66 @@
+
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/authdb
+      SPRING_DATASOURCE_USERNAME: authuser
+      SPRING_DATASOURCE_PASSWORD: authpass
+      JWT_SECRET: mJvZy0xF7R1k5nQ+q3Lw5u8nC9dP2ZKJw8A0XhZrQwE=
+      JWT_EXPIRATION: 86400000
+
+  workflow-service:
+    build: ./workflow-service
+    container_name: workflow-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      - auth-service
+      - ai-service
+      - workflow-postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://workflow-postgres:5432/workflowdb
+      SPRING_DATASOURCE_USERNAME: workflowuser
+      SPRING_DATASOURCE_PASSWORD: workflowpass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: mJvZy0xF7R1k5nQ+q3Lw5u8nC9dP2ZKJw8A0XhZrQwE=
+
+  ai-service:
+    build: ./ai-service
+    container_name: ai-service
+    ports:
+      - "8083:8080"
+
+
+  postgres:
+    image: postgres:15
+    container_name: auth-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  workflow-postgres:
+    image: postgres:15
+    container_name: workflow-postgres
+    environment:
+      POSTGRES_DB: workflowdb
+      POSTGRES_USER: workflowuser
+      POSTGRES_PASSWORD: workflowpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - workflow_postgres_data:/var/lib/postgresql/data
+
+
+volumes:
+  postgres_data:
+  workflow_postgres_data:
