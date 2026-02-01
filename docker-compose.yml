@@ -29,6 +29,13 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       JWT_SECRET: mJvZy0xF7R1k5nQ+q3Lw5u8nC9dP2ZKJw8A0XhZrQwE=
 
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
   ai-service:
     build: ./ai-service
     container_name: ai-service

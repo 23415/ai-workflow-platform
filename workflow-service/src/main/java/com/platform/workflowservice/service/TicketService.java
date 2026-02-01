@@ -1,12 +1,18 @@
 package com.platform.workflowservice.service;
 
+import com.platform.workflowservice.dto.PageResponse;
 import com.platform.workflowservice.dto.TicketRequestDto;
+import com.platform.workflowservice.dto.TicketResponseDto;
 import com.platform.workflowservice.entities.Ticket;
 import com.platform.workflowservice.enums.TicketStatus;
 import com.platform.workflowservice.exception.ResourceNotFoundException;
 import com.platform.workflowservice.repository.TicketRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -28,6 +34,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(value = "tickets-page",allEntries = true)
     public Ticket createTicket(TicketRequestDto req,Long userId){
         Ticket newTicket = new Ticket();
 
@@ -51,6 +58,7 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
+    @CacheEvict(value = {"tickets","tickets-page"}, key = "#ticketId",allEntries = true)
     public Ticket ticketStatusChange(Long ticketId, String status){
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(()->new ResourceNotFoundException("Ticket does not exists"));
@@ -71,21 +79,50 @@ public class TicketService {
         return savedTicket;
     }
 
-    public Page<Ticket> getTicketByRole(
+    @Cacheable(value = "tickets-page",
+        key = "#role +':' + #email +':' + #page +':' + #size +':createdAt:DESC'"
+    )
+    public PageResponse<TicketResponseDto> getTicketByRole(
             String email,
             String role,
-            Pageable pageable
+            int page,
+            int size
     ){
-        return switch (role){
+        Pageable pageable = PageRequest.of(
+                page,size, Sort.by("createdAt").descending()
+        );
+        log.warn("🔥 CACHE MISS — DB HIT {} page", email);
+        log.error("page CACHE PROXY HASH = {}", System.identityHashCode(this));
+
+        Page<Ticket> ticket =  switch (role){
             case "ROLE_ADMIN" -> ticketRepository.findAll(pageable);
             case "ROLE_AGENT" -> ticketRepository.findAllByAssignedToUserId(email, pageable);
             case "ROLE_USER" -> ticketRepository.findAllByCreatedByUserId(email, pageable);
             default -> throw new IllegalStateException("Invalid Role: " + role);
         };
+        return new PageResponse<>(ticket.map(this::toDto));
     }
 
-    public Ticket getTicketById(Long ticketId){
-        log.info("Ticket Fetched using Id : {}",ticketId);
-        return ticketRepository.findById(ticketId).orElseThrow(()-> new ResourceNotFoundException("No ticket found"));
+    @Cacheable(value = "tickets", key = "#ticketId")
+    public TicketResponseDto getTicketById(Long ticketId) {
+        log.warn("🔥 CACHE MISS — DB HIT {}", ticketId);
+        log.error("CACHE PROXY HASH = {}", System.identityHashCode(this));
+
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("No ticket found"));
+
+        return new TicketResponseDto(
+                ticket.getId(),
+                ticket.getTitle(),
+                ticket.getStatus()
+        );
+    }
+
+    private TicketResponseDto toDto(Ticket ticket) {
+        return new TicketResponseDto(
+                ticket.getId(),
+                ticket.getTitle(),
+                ticket.getStatus()
+        );
     }
 }

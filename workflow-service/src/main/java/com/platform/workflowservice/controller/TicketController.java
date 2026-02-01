@@ -1,5 +1,6 @@
 package com.platform.workflowservice.controller;
 
+import com.platform.workflowservice.dto.PageResponse;
 import com.platform.workflowservice.dto.SlaResponseDto;
 import com.platform.workflowservice.dto.TicketRequestDto;
 import com.platform.workflowservice.dto.TicketResponseDto;
@@ -8,10 +9,6 @@ import com.platform.workflowservice.enums.SlaStatus;
 import com.platform.workflowservice.repository.SlaRepository;
 import com.platform.workflowservice.security.CustomUserPrincipal;
 import com.platform.workflowservice.service.TicketService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,7 +50,6 @@ public class TicketController {
 
     @PutMapping("/{id}/assign")
     public TicketResponseDto assignTicket(@PathVariable Long id, @RequestParam Long userId){
-//        throw new ConfigDataResourceNotFoundException("ticket Test");
         Ticket ticket = ticketService.assignTicket(id, userId);
         return new TicketResponseDto(
                 ticket.getId(),
@@ -73,25 +69,20 @@ public class TicketController {
     }
 
     @GetMapping
-    public Page<Ticket> getTicketsByRole(
+    public PageResponse<TicketResponseDto> getTicketsByRole(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int pageSize,
             Authentication authentication
     ){
         CustomUserPrincipal principal = (CustomUserPrincipal) authentication.getPrincipal();
-        Pageable pageable = PageRequest.of(
-                page,pageSize, Sort.by("createdAt").descending()
-        );
 
-        Page<Ticket> ticketPage = ticketService.getTicketByRole(principal.getEmail(), principal.getRole(),pageable);
-        return ticketPage;
+        return ticketService.getTicketByRole(principal.getEmail(), principal.getRole(),page,pageSize);
     }
 
     @GetMapping("/{ticketId}")
     public TicketResponseDto getTicketById(@PathVariable Long ticketId){
-        Ticket ticket = ticketService.getTicketById(ticketId);
-        TicketResponseDto res = toDto(ticket);
-        slaRepository.findByTicketId(ticket.getId())
+        TicketResponseDto res = ticketService.getTicketById(ticketId);
+        slaRepository.findByTicketId(res.getId())
                 .ifPresent(sla->{
                     res.setSla(
                             new SlaResponseDto(
@@ -102,12 +93,5 @@ public class TicketController {
                     );
                 });
         return res;
-    }
-    private TicketResponseDto toDto(Ticket ticket) {
-        return new TicketResponseDto(
-                ticket.getId(),
-                ticket.getTitle(),
-                ticket.getStatus()
-        );
     }
 }
