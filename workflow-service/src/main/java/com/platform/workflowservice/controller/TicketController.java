@@ -1,13 +1,11 @@
 package com.platform.workflowservice.controller;
 
-import com.platform.workflowservice.dto.PageResponse;
-import com.platform.workflowservice.dto.SlaResponseDto;
-import com.platform.workflowservice.dto.TicketRequestDto;
-import com.platform.workflowservice.dto.TicketResponseDto;
+import com.platform.workflowservice.dto.*;
 import com.platform.workflowservice.entities.Ticket;
 import com.platform.workflowservice.enums.SlaStatus;
 import com.platform.workflowservice.repository.SlaRepository;
 import com.platform.workflowservice.security.CustomUserPrincipal;
+import com.platform.workflowservice.service.AiServiceIntegration;
 import com.platform.workflowservice.service.TicketService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +16,12 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final SlaRepository slaRepository;
+    private final AiServiceIntegration aiServiceIntegration;
 
-    public TicketController(TicketService ticketService, SlaRepository slaRepository) {
+    public TicketController(TicketService ticketService, SlaRepository slaRepository, AiServiceIntegration aiServiceIntegration) {
         this.ticketService = ticketService;
         this.slaRepository = slaRepository;
+        this.aiServiceIntegration = aiServiceIntegration;
     }
     @PostMapping("/create")
     public TicketResponseDto createTicket(@RequestBody TicketRequestDto req){
@@ -44,7 +44,8 @@ public class TicketController {
                             )
                     );
                 });
-
+        AiPredictResponse aiRes = aiServiceIntegration.callAiService(ticket.getTitle(), ticket.getDescription());
+        res.setCategory(aiRes.category());
         return res;
     }
 

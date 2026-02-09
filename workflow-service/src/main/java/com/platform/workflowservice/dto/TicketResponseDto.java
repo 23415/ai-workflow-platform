@@ -8,6 +8,7 @@ public class TicketResponseDto {
     private String title;
     private TicketStatus status;
     private SlaResponseDto sla;
+    private String category;
 
     public TicketResponseDto(Long id, String title, TicketStatus status) {
         this.id = id;
@@ -17,6 +18,14 @@ public class TicketResponseDto {
 
     public TicketResponseDto() {
 
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public SlaResponseDto getSla() {
