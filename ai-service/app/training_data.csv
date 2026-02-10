@@ -1,0 +1,13 @@
+text,category
+"login failed password incorrect",AUTH
+"unable to reset password",AUTH
+"payment not going through",PAYMENT
+"credit card declined",PAYMENT
+"ticket assignment not working",WORKFLOW
+"workflow stuck in pending state",WORKFLOW
+"application is very slow",PERFORMANCE
+"page takes too long to load",PERFORMANCE
+"unexpected error on save",BUG
+"null pointer exception",BUG
+"need help with dashboard",GENERAL
+"how to use reports",GENERAL

@@ -15,7 +15,7 @@
     <modules>
         <module>auth-service</module>
         <module>workflow-service</module>
-        <module>ai-service</module>
+        <module>ai-service-java-backup</module>
         <module>common-lib</module>
     </modules>
 
